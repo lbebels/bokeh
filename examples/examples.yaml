@@ -15,7 +15,6 @@
 
 - path: "plotting/server"
   type: server
-  skip: all
 
 - path: "plotting/notebook"
   skip: all
