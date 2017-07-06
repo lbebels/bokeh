@@ -4,7 +4,6 @@
 
 - path: "models/server"
   type: server
-  skip: all
 
 - path: "custom"
 
