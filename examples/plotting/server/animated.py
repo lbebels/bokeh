@@ -2,7 +2,6 @@
 
 from numpy import pi, cos, sin, linspace, roll
 
-from bokeh.client import push_session
 from bokeh.io import curdoc
 from bokeh.plotting import figure
 
@@ -21,9 +20,6 @@ p = figure(x_range=(-11, 11), y_range=(-11, 11))
 r = p.annular_wedge(0, 0, rmin, rmax, theta[:-1], theta[1:],
                     fill_color=colors, line_color="white")
 
-# open a session to keep our local document in sync with server
-session = push_session(curdoc())
-
 ds = r.data_source
 
 def update():
@@ -31,8 +27,6 @@ def update():
     rmax = roll(ds.data["outer_radius"], -1)
     ds.data.update(inner_radius=rmin, outer_radius=rmax)
 
-curdoc().add_periodic_callback(update, 60)
-
-session.show(p) # open the document in a browser
-
-session.loop_until_closed() # run forever
+doc = curdoc()
+doc.add_root(p)
+doc.add_periodic_callback(update, 60)

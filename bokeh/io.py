@@ -576,12 +576,14 @@ def _wait_until_render_complete(driver):
       window._bokeh_render_complete = true;
     }
 
-    var doc = window.Bokeh.documents[0];
+    if (window.Bokeh) {
+      var doc = window.Bokeh.documents[0];
 
-    if (doc.is_idle)
-      done();
-    else
-      doc.idle.connect(done);
+      if (doc.is_idle)
+        done();
+      else
+        doc.idle.connect(done);
+    }
     """
     driver.execute_script(script)
 
@@ -595,10 +597,11 @@ def _wait_until_render_complete(driver):
                      a 'bokeh:idle' event to signify that the layout has rendered. \
                      Something may have gone wrong.")
     finally:
-        browser_logs = driver.get_log('browser')
-        severe_errors = [l for l in browser_logs if l.get('level') == 'SEVERE']
-        if len(severe_errors) > 0:
-            logger.warn("There were severe browser errors that may have affected your export: {}".format(severe_errors))
+        # browser_logs = driver.get_log('browser')
+        # severe_errors = [l for l in browser_logs if l.get('level') == 'SEVERE']
+        # if len(severe_errors) > 0:
+        #     logger.warn("There were severe browser errors that may have affected your export: {}".format(severe_errors))
+        pass
 
 def _crop_image(image, left=0, top=0, right=0, bottom=0, **kwargs):
     '''Crop the border from the layout'''
@@ -626,16 +629,17 @@ def _get_screenshot_as_png(obj, driver):
         web_driver = driver
 
     web_driver.get("file:///" + html_path)
-    web_driver.maximize_window()
+    # web_driver.maximize_window()
+    web_driver.set_window_size(1000, 1000)
 
-    ## resize for PhantomJS compat
+    # resize for PhantomJS compat
     web_driver.execute_script("document.body.style.width = '100%';")
 
     _wait_until_render_complete(web_driver)
 
     png = web_driver.get_screenshot_as_png()
 
-    bounding_rect_script = "return document.getElementsByClassName('bk-root')[0].children[0].getBoundingClientRect()"
+    bounding_rect_script = "return document.getElementsByClassName('bk-root')[0].children[0].children[0].getBoundingClientRect()"
     b_rect = web_driver.execute_script(bounding_rect_script)
 
     if driver is None: # only quit webdriver if not passed in as arg

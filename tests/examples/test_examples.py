@@ -14,6 +14,11 @@ from tests.plugins.image_diff import image_diff
 
 from .utils import deal_with_output_cells
 
+from bokeh.client import push_session
+from bokeh.command.util import build_single_handler_application
+from bokeh.io import _wait_until_render_complete
+
+
 @pytest.mark.examples
 def test_js_examples(js_example, example, report):
     if example.is_skip:
@@ -62,31 +67,32 @@ def test_file_examples(file_example, example, report):
         else:
             _get_pdiff(example)
 
-
 @pytest.mark.examples
-def test_server_examples(server_example, example, bokeh_server, report):
+def test_server_examples(server_example, example, webdriver, bokeh_server, report):
     if example.is_skip:
         pytest.skip("skipping %s" % example.relpath)
 
-    session_id = "abc"
+    app = build_single_handler_application(example.path)
+    doc = app.create_document()
 
-    url = '%s/?bokeh-session-id=%s' % (bokeh_server, session_id)
+    push_session(doc, session_id="abc")
 
-    (status, duration, out, err) = _run_example(example)
-    info("Example run in %s" % white("%.3fs" % duration))
+    webdriver.get("http://localhost:5006/?bokeh-session-id=abc")
 
-    if example.no_js:
-        if not pytest.config.option.no_js:
-            warn("skipping bokehjs for %s" % example.relpath)
+    _wait_until_render_complete(webdriver)
+
+    webdriver.set_window_size(1000, 1000)
+    png = webdriver.get_screenshot_as_png()
+
+    with open(example.img_path, 'wb') as f:
+        f.write(png)
+
+    if example.no_diff:
+        warn("skipping image diff for %s" % example.relpath)
     else:
-        _assert_snapshot(example, url, 'server')
+        _get_pdiff(example)
 
-        if example.no_diff:
-            warn("skipping image diff for %s" % example.relpath)
-        else:
-            _get_pdiff(example)
-
-
+### {{{ THIS IS BROKEN and all examples are skipped in examples.yaml
 @pytest.mark.examples
 def test_notebook_examples(notebook_example, example, jupyter_notebook, report):
     if example.is_skip:
@@ -99,7 +105,8 @@ def test_notebook_examples(notebook_example, example, jupyter_notebook, report):
     _assert_snapshot(example, url, 'notebook')
     if not example.no_diff:
         _get_pdiff(example)
-# }}}
+### }}}
+
 
 def _get_pdiff(example):
     img_path, ref_path, diff_path = example.img_path, example.ref_path, example.diff_path
